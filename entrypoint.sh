@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# floppy_path=
+# hd_path=
 # target=
 # kernel_image
 # image_path
@@ -18,7 +18,7 @@ Usage: '"$0"'
     --zip     Path to file system image zip file (default:${zip_path})
     --img     Path of file system image file (default:${image_path})
     --kernel  Kernel image (default: kernel-qemu-4.19.50-buster)
-    --floppy  Host folder to add as floppy (fda).
+    --drive   Host folder to add as drive (hda).
     --help    Show this help.
 '
     exit 1
@@ -30,7 +30,7 @@ if [[ $target != pi* ]]; then
       --img)      image_path="$2" ;;
       --zip)      zip_path="$2" ;;
       --kernel)   kernel_image="$2" ;;
-      --floppy)   floppy_path="$2" ;;
+      --drive)    hd_path="$2" ;;
       --help)     usage ;;
     esac
     shift
@@ -89,11 +89,11 @@ else
   exit 2
 fi
 
-if [ -n "${floppy_path}" ] && [ -e ${floppy_path} ]; then
-  echo "Add floppy ${floppy_path} to guest."
-  fda="-fda fat:floppy:${floppy_path}"
+if [ -n "${hd_path}" ] && [ -e ${hd_path} ]; then
+  echo "Add hard drive ${hd_path} to guest."
+  hda="-hda format:raw,fat:${hd_path}"
 else
-  fda=''
+  hda=''
 fi
 
 if [ "${kernel_pattern}" ] && [ "${dtb_pattern}" ]; then
@@ -136,7 +136,7 @@ exec ${emulator} \
   --cpu arm1176 \
   --m "${memory}" \
   --drive "format=raw,file=${image_path}" \
-  ${fda} \
+  ${hda} \
   ${nic} \
   --dtb "${dtb}" \
   --kernel "${kernel}" \
