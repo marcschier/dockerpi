@@ -15,7 +15,7 @@ Usage: '"$0"'
     --zip     Path to file system image zip file (default:${zip_path})
     --img     Path of file system image file (default:${image_path})
     --kernel  Kernel image (default: kernel-qemu-4.19.50-buster)
-    --mount   Host folder to mount into qemu.
+    --drive   Host folder to drive into qemu.
     --help    Show this help.
 '
     exit 1
@@ -27,7 +27,7 @@ if [[ $target != pi* ]]; then
       --img)      image_path="$2" ;;
       --zip)      zip_path="$2" ;;
       --kernel)   kernel_image="$2" ;;
-      --mount)    mount_path="$2" ;;
+      --drive)    drive_path="$2" ;;
       --help)     usage ;;
     esac
     shift
@@ -80,8 +80,9 @@ else
   exit 2
 fi
 
-if [ -n "${mount_path}" ] && [ -d ${mount_path} ]; then
-  hostfs="--drive file=fat:${mount_path}"
+if [ -n "${drive_path}" ] && [ -d ${drive_path} ]; then
+  echo "Will add drive ${drive_path} to guest."
+  hostfs="--drive format=raw,file=fat:rw:${drive_path}"
 else
   hostfs=''
 fi
@@ -120,7 +121,7 @@ if [ "${target}" -ne "pi1" ]; then
   qemu-img resize $image_path "${new_size}G"
 fi
 
-echo "Booting QEMU machine \"${machine}\" with kernel=${kernel} dtb=${dtb}"
+echo "Booting ${target} QEMU machine \"${machine}\" with kernel=${kernel} and dtb=${dtb}"
 exec ${emulator} \
   --machine "${machine}" \
   --cpu arm1176 \
