@@ -91,7 +91,7 @@ fi
 
 if [ -n "${floppy_path}" ] && [ -e ${floppy_path} ]; then
   echo "Add floppy ${floppy_path} to guest."
-  fda='-fda fat:floppy:${floppy_path}"'
+  fda="-fda fat:floppy:${floppy_path}"
 else
   fda=''
 fi
