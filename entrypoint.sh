@@ -82,7 +82,7 @@ fi
 
 if [ -n "${drive_path}" ] && [ -d ${drive_path} ]; then
   echo "Will add drive ${drive_path} to guest."
-  hostfs="--drive format=raw,file=fat:rw:${drive_path}"
+  hostfs='--drive "format=raw,file=fat:rw:${drive_path}"'
 else
   hostfs=''
 fi
@@ -126,8 +126,8 @@ exec ${emulator} \
   --machine "${machine}" \
   --cpu arm1176 \
   --m "${memory}" \
-  --drive "format=raw,file=${image_path}" \
-  ${nic} ${hostfs} \
+  --drive "format=raw,file=${image_path}" ${hostfs} \
+  ${nic} \
   --dtb "${dtb}" \
   --kernel "${kernel}" \
   --append "rw earlyprintk loglevel=8 console=ttyAMA0,115200 dwc_otg.lpm_enable=0 root=${root} rootwait panic=1 ${extra}" \
