@@ -4,6 +4,8 @@ target="${1:-pi1}"
 image_path="/sdcard/filesystem.img"
 zip_path="/filesystem.zip"
 
+
+
 if [ ! -e $image_path ]; then
   echo "No filesystem detected at ${image_path}!"
   if [ -e $zip_path ]; then
@@ -33,13 +35,6 @@ elif [ "${target}" = "pi2" ]; then
   extra='dwc_otg.fiq_fsm_enable=0'
   nic='-netdev user,id=net0,hostfwd=tcp::5022-:22 -device usb-net,netdev=net0'
 elif [ "${target}" = "pi3" ]; then
-
-  echo "Rounding image size up to a multiple of 2G"
-  image_size=`du -m $image_path | cut -f1`
-  new_size=$(( ( ( image_size / 2048 ) + 1 ) * 2 ))
-  echo "from ${image_size}M to ${new_size}G"
-  qemu-img resize $image_path "${new_size}G"
-
   emulator=qemu-system-aarch64
   machine=raspi3
   memory=1024m
@@ -51,6 +46,12 @@ else
   echo "Target ${target} not supported"
   echo "Supported targets: pi1 pi2 pi3"
   exit 2
+fi
+
+if [ "${host_path}" ] && [[ -f $host_path ]]; then
+  hostfs="--drive file=fat:${host_path}"
+else
+  hostfs=''
 fi
 
 if [ "${kernel_pattern}" ] && [ "${dtb_pattern}" ]; then
@@ -79,13 +80,21 @@ if [ "${kernel}" = "" ] || [ "${dtb}" = "" ]; then
   exit 2
 fi
 
+if [ "${target}" = "pi3" ]; then
+  echo "Rounding image size up to a multiple of 2G"
+  image_size=`du -m $image_path | cut -f1`
+  new_size=$(( ( ( image_size / 2048 ) + 1 ) * 2 ))
+  echo "from ${image_size}M to ${new_size}G"
+  qemu-img resize $image_path "${new_size}G"
+fi
+
 echo "Booting QEMU machine \"${machine}\" with kernel=${kernel} dtb=${dtb}"
 exec ${emulator} \
   --machine "${machine}" \
   --cpu arm1176 \
   --m "${memory}" \
   --drive "format=raw,file=${image_path}" \
-  ${nic} \
+  ${nic} ${hostfs} \
   --dtb "${dtb}" \
   --kernel "${kernel}" \
   --append "rw earlyprintk loglevel=8 console=ttyAMA0,115200 dwc_otg.lpm_enable=0 root=${root} rootwait panic=1 ${extra}" \
