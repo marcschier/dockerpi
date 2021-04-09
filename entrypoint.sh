@@ -1,10 +1,38 @@
 #!/bin/sh
 
+if [ -z "$target" ] || [ $target != pi* ]; then
+# support original behavior
 target="${1:-pi1}"
+fi
+
 image_path="/sdcard/filesystem.img"
 zip_path="/filesystem.zip"
 
-
+usage(){
+    echo '
+Usage: '"$0"'
+    --target  Set target device (pi1, pi2, or pi3)
+    --zip     Path to file system image zip file (default:${zip_path})
+    --img     Path of file system image file (default:${image_path})
+    --kernel  Kernel image (default: kernel-qemu-4.19.50-buster)
+    --mount   Host folder to mount into qemu.
+    --help    Show this help.
+'
+    exit 1
+}
+if [[ $target != pi* ]]; then 
+  while [ "$#" -gt 0 ]; do
+    case "$1" in
+      --target)   target="$2" ;;
+      --img)      image_path="$2" ;;
+      --zip)      zip_path="$2" ;;
+      --kernel)   kernel_image="$2" ;;
+      --mount)    mount_path="$2" ;;
+      --help)     usage ;;
+    esac
+    shift
+  done
+fi
 
 if [ ! -e $image_path ]; then
   echo "No filesystem detected at ${image_path}!"
@@ -17,9 +45,13 @@ if [ ! -e $image_path ]; then
   fi
 fi
 
+if [ -z "$kernel_image" ]; then
+  kernel_image="kernel-qemu-4.19.50-buster"
+fi
+
 if [ "${target}" = "pi1" ]; then
   emulator=qemu-system-arm
-  kernel="/root/qemu-rpi-kernel/kernel-qemu-4.19.50-buster"
+  kernel="/root/qemu-rpi-kernel/${kernel_image}"
   dtb="/root/qemu-rpi-kernel/versatile-pb.dtb"
   machine=versatilepb
   memory=256m
@@ -48,8 +80,8 @@ else
   exit 2
 fi
 
-if [ "${host_path}" ] && [[ -f $host_path ]]; then
-  hostfs="--drive file=fat:${host_path}"
+if [ -n "${mount_path}" ] && [ -d ${mount_path} ]; then
+  hostfs="--drive file=fat:${mount_path}"
 else
   hostfs=''
 fi

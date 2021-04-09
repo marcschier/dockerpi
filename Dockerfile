@@ -64,6 +64,7 @@ FROM busybox:1.31 AS dockerpi-vm
 LABEL maintainer="Luke Childs <lukechilds123@gmail.com>"
 ARG RPI_KERNEL_URL="https://github.com/dhruvvyas90/qemu-rpi-kernel/archive/afe411f2c9b04730bcc6b2168cdc9adca224227c.zip"
 ARG RPI_KERNEL_CHECKSUM="295a22f1cd49ab51b9e7192103ee7c917624b063cc5ca2e11434164638aad5f4"
+ARG RPI_KERNEL_NAME="kernel-qemu-4.19.50-buster"
 
 COPY --from=qemu-builder /qemu/arm-softmmu/qemu-system-arm /usr/local/bin/qemu-system-arm
 COPY --from=qemu-builder /qemu/aarch64-softmmu/qemu-system-aarch64 /usr/local/bin/qemu-system-aarch64
@@ -76,12 +77,13 @@ RUN cd /tmp && \
     echo "$RPI_KERNEL_CHECKSUM  qemu-rpi-kernel.zip" | sha256sum -c && \
     unzip qemu-rpi-kernel.zip && \
     mkdir -p /root/qemu-rpi-kernel && \
-    cp qemu-rpi-kernel-*/kernel-qemu-4.19.50-buster /root/qemu-rpi-kernel/ && \
+    cp qemu-rpi-kernel-*/${RPI_KERNEL_NAME} /root/qemu-rpi-kernel/ && \
     cp qemu-rpi-kernel-*/versatile-pb.dtb /root/qemu-rpi-kernel/ && \
     rm -rf /tmp/*
 
 VOLUME /sdcard
 
+ENV kernel_image=${RPI_KERNEL_NAME}
 ADD ./entrypoint.sh /entrypoint.sh
 ENTRYPOINT ["./entrypoint.sh"]
 
