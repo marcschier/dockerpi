@@ -113,7 +113,7 @@ if [ "${kernel}" = "" ] || [ "${dtb}" = "" ]; then
   exit 2
 fi
 
-if [ "${target}" -ne "pi1" ]; then
+if [ "${target}" != "pi1" ]; then
   echo "Rounding image size up to a multiple of 2G"
   image_size=`du -m $image_path | cut -f1`
   new_size=$(( ( ( image_size / 2048 ) + 1 ) * 2 ))
