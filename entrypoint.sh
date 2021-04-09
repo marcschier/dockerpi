@@ -118,7 +118,7 @@ if [ "${target}" != "pi1" ]; then
   image_size=`du -m $image_path | cut -f1`
   new_size=$(( ( ( image_size / 2048 ) + 1 ) * 2 ))
   echo "from ${image_size}M to ${new_size}G"
-  qemu-img resize $image_path "${new_size}G"
+  qemu-img resize -f raw $image_path "${new_size}G"
 fi
 
 echo "Booting ${target} QEMU machine \"${machine}\" with kernel=${kernel} and dtb=${dtb}"
