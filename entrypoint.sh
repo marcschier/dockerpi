@@ -1,12 +1,15 @@
 #!/bin/sh
 
+# floppy_path=
+# target=
+# kernel_image
+# image_path
+# zip_path
+
 if [ -z "$target" ] || [ $target != pi* ]; then
 # support original behavior
 target="${1:-pi1}"
 fi
-
-image_path="/sdcard/filesystem.img"
-zip_path="/filesystem.zip"
 
 usage(){
     echo '
@@ -15,7 +18,7 @@ Usage: '"$0"'
     --zip     Path to file system image zip file (default:${zip_path})
     --img     Path of file system image file (default:${image_path})
     --kernel  Kernel image (default: kernel-qemu-4.19.50-buster)
-    --drive   Host folder to drive into qemu.
+    --floppy  Host folder to add as floppy (fda).
     --help    Show this help.
 '
     exit 1
@@ -27,11 +30,21 @@ if [[ $target != pi* ]]; then
       --img)      image_path="$2" ;;
       --zip)      zip_path="$2" ;;
       --kernel)   kernel_image="$2" ;;
-      --drive)    drive_path="$2" ;;
+      --floppy)   floppy_path="$2" ;;
       --help)     usage ;;
     esac
     shift
   done
+fi
+# set defaults
+if [ -z "$image_path" ]; then
+  image_path="/sdcard/filesystem.img"
+fi
+if [ -z "$zip_path" ]; then
+  zip_path="/filesystem.zip"
+fi
+if [ -z "$kernel_image" ]; then
+  kernel_image="kernel-qemu-4.19.50-buster"
 fi
 
 if [ ! -e $image_path ]; then
@@ -43,10 +56,6 @@ if [ ! -e $image_path ]; then
   else
     exit 1
   fi
-fi
-
-if [ -z "$kernel_image" ]; then
-  kernel_image="kernel-qemu-4.19.50-buster"
 fi
 
 if [ "${target}" = "pi1" ]; then
@@ -80,11 +89,11 @@ else
   exit 2
 fi
 
-if [ -n "${drive_path}" ] && [ -d ${drive_path} ]; then
-  echo "Will add drive ${drive_path} to guest."
-  hostfs='--drive "format=raw,file=fat:rw:${drive_path}"'
+if [ -n "${floppy_path}" ] && [ -e ${floppy_path} ]; then
+  echo "Add floppy ${floppy_path} to guest."
+  fda='-fda fat:floppy:${floppy_path}"'
 else
-  hostfs=''
+  fda=''
 fi
 
 if [ "${kernel_pattern}" ] && [ "${dtb_pattern}" ]; then
@@ -126,7 +135,8 @@ exec ${emulator} \
   --machine "${machine}" \
   --cpu arm1176 \
   --m "${memory}" \
-  --drive "format=raw,file=${image_path}" ${hostfs} \
+  --drive "format=raw,file=${image_path}" \
+  ${fda} \
   ${nic} \
   --dtb "${dtb}" \
   --kernel "${kernel}" \
