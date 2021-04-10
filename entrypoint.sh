@@ -91,7 +91,7 @@ fi
 
 if [ -n "${hd_path}" ] && [ -e ${hd_path} ]; then
   echo "Add hard drive ${hd_path} to guest."
-  hda="-hda format:raw,fat:${hd_path}"
+  hda="-hdb format:raw,fat:${hd_path}"
 else
   hda=''
 fi
