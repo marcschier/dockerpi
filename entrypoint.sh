@@ -5,6 +5,7 @@
 # kernel_image
 # image_path
 # zip_path
+# image_size
 
 if [ -z "$target" ] || [ $target != pi* ]; then
 # support original behavior
@@ -16,6 +17,7 @@ Usage: '"$0"'
     --target  Set target device (pi1, pi2, or pi3)
     --zip     Path to file system image zip file (default:${zip_path})
     --img     Path of file system image file (default:${image_path})
+    --size    Image size in GB (default: rounded up to next 2 GB)
     --kernel  Kernel image (default: kernel-qemu-4.19.50-buster)
     --append  Kernel command line to append (default:none)
     --help    Show this help.
@@ -29,6 +31,7 @@ if [[ $target != pi* ]]; then
       --img)      image_path="$2" ;;
       --zip)      zip_path="$2" ;;
       --kernel)   kernel_image="$2" ;;
+      --size)     image_size="$2" ;;
       --append)   append="$2" ;;
       --help)     usage ;;
     esac
@@ -61,6 +64,14 @@ if [ ! -e $image_path ]; then
     usage
   fi
 fi
+
+if [ -z "$image_size" ] ; then 
+  image_size=`du -m $image_path | cut -f1`
+  echo "Rounding image size up from ${image_size}M"
+fi
+new_size=$(( ( ( ( image_size - ) / 2048 ) + 1 ) * 2 ))
+echo "Resize image to ${new_size}G"
+qemu-img resize -f raw $image_path "${new_size}G"
 
 if [ "${target}" = "pi1" ]; then
   emulator=qemu-system-arm
@@ -117,14 +128,6 @@ fi
 if [ "${kernel}" = "" ] || [ "${dtb}" = "" ]; then
   echo "Missing kernel='${kernel}' or dtb='${dtb}'"
   exit 2
-fi
-
-if [ "${target}" != "pi1" ]; then
-  echo "Rounding image size up to a multiple of 2G"
-  image_size=`du -m $image_path | cut -f1`
-  new_size=$(( ( ( image_size / 2048 ) + 1 ) * 2 ))
-  echo "from ${image_size}M to ${new_size}G"
-  qemu-img resize -f raw $image_path "${new_size}G"
 fi
 
 echo "Booting \"${machine}\" for ${target} (kernel=${kernel}, dtb=${dtb}, root=${root}, commandline=\"${append}\")"
