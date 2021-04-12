@@ -69,7 +69,7 @@ if [ -z "$image_size" ] ; then
   image_size=`du -m $image_path | cut -f1`
   echo "Rounding image size up from ${image_size}M"
 fi
-new_size=$(( ( ( ( image_size - ) / 2048 ) + 1 ) * 2 ))
+new_size=$(( ( ( ( image_size - 1 ) / 2048 ) + 1 ) * 2 ))
 echo "Resize image to ${new_size}G"
 qemu-img resize -f raw $image_path "${new_size}G"
 
