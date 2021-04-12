@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# hd_path=
+# append=
 # target=
 # kernel_image
 # image_path
@@ -10,7 +10,6 @@ if [ -z "$target" ] || [ $target != pi* ]; then
 # support original behavior
 target="${1:-pi1}"
 fi
-
 usage(){
     echo '
 Usage: '"$0"'
@@ -18,7 +17,7 @@ Usage: '"$0"'
     --zip     Path to file system image zip file (default:${zip_path})
     --img     Path of file system image file (default:${image_path})
     --kernel  Kernel image (default: kernel-qemu-4.19.50-buster)
-    --drive   Host folder to add as drive (hda).
+    --append  Kernel command line to append (default:none)
     --help    Show this help.
 '
     exit 1
@@ -30,12 +29,13 @@ if [[ $target != pi* ]]; then
       --img)      image_path="$2" ;;
       --zip)      zip_path="$2" ;;
       --kernel)   kernel_image="$2" ;;
-      --drive)    hd_path="$2" ;;
+      --append)   append="$2" ;;
       --help)     usage ;;
     esac
     shift
   done
 fi
+
 # set defaults
 if [ -z "$image_path" ]; then
   image_path="/sdcard/filesystem.img"
@@ -46,6 +46,9 @@ fi
 if [ -z "$kernel_image" ]; then
   kernel_image="kernel-qemu-4.19.50-buster"
 fi
+if [ -z "$target" ]; then
+  target="pi1"
+fi
 
 if [ ! -e $image_path ]; then
   echo "No filesystem detected at ${image_path}!"
@@ -54,7 +57,8 @@ if [ ! -e $image_path ]; then
       unzip $zip_path
       mv -- *.img $image_path
   else
-    exit 1
+    echo "Specify filesystem zip file using --zip."
+    usage
   fi
 fi
 
@@ -87,13 +91,6 @@ else
   echo "Target ${target} not supported"
   echo "Supported targets: pi1 pi2 pi3"
   exit 2
-fi
-
-if [ -n "${hd_path}" ] && [ -e ${hd_path} ]; then
-  echo "Add hard drive ${hd_path} to guest."
-  hda="-hdb fat:${hd_path}"
-else
-  hda=''
 fi
 
 if [ "${kernel_pattern}" ] && [ "${dtb_pattern}" ]; then
@@ -130,17 +127,16 @@ if [ "${target}" != "pi1" ]; then
   qemu-img resize -f raw $image_path "${new_size}G"
 fi
 
-echo "Booting ${target} QEMU machine \"${machine}\" with kernel=${kernel} and dtb=${dtb}"
+echo "Booting \"${machine}\" for ${target} (kernel=${kernel}, dtb=${dtb}, root=${root}, commandline=\"${append}\")"
 exec ${emulator} \
   --machine "${machine}" \
   --cpu arm1176 \
   --m "${memory}" \
   --drive "format=raw,file=${image_path}" \
-  ${hda} \
   ${nic} \
   --dtb "${dtb}" \
   --kernel "${kernel}" \
-  --append "rw earlyprintk loglevel=8 console=ttyAMA0,115200 dwc_otg.lpm_enable=0 root=${root} rootwait panic=1 ${extra}" \
+  --append "rw earlyprintk loglevel=8 console=ttyAMA0,115200 dwc_otg.lpm_enable=0 root=${root} rootwait panic=1 ${extra} ${append}" \
   --no-reboot \
   --display none \
   --serial mon:stdio
