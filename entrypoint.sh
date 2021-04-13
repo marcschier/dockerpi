@@ -65,14 +65,6 @@ if [ ! -e $image_path ]; then
   fi
 fi
 
-if [ -z "$image_size" ] ; then 
-  image_size=`du -m $image_path | cut -f1`
-  echo "Rounding image size up from ${image_size}M"
-fi
-new_size=$(( ( ( ( image_size - 1 ) / 2048 ) + 1 ) * 2 ))
-echo "Resize image to ${new_size}G"
-qemu-img resize -f raw $image_path "${new_size}G"
-
 if [ "${target}" = "pi1" ]; then
   emulator=qemu-system-arm
   kernel="/root/qemu-rpi-kernel/${kernel_image}"
@@ -129,6 +121,14 @@ if [ "${kernel}" = "" ] || [ "${dtb}" = "" ]; then
   echo "Missing kernel='${kernel}' or dtb='${dtb}'"
   exit 2
 fi
+
+if [ -z "$image_size" ] ; then 
+  image_size=`du -m $image_path | cut -f1`
+  echo "Rounding image size up from ${image_size}M"
+fi
+new_size=$(( ( ( ( image_size - 1 ) / 2048 ) + 1 ) * 2 ))
+echo "Resize image to ${new_size}G"
+qemu-img resize -f raw $image_path "${new_size}G"
 
 echo "Booting \"${machine}\" for ${target} (kernel=${kernel}, dtb=${dtb}, root=${root}, commandline=\"${append}\")"
 exec ${emulator} \
