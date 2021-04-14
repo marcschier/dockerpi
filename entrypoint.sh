@@ -57,6 +57,7 @@ if [ ! -e $image_path ]; then
   echo "No filesystem detected at ${image_path}!"
   if [ -e $zip_path ]; then
       echo "Extracting fresh filesystem..."
+      unzip -l $zip_path
       unzip $zip_path
       mv -- *.img $image_path
   else
