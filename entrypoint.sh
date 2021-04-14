@@ -15,7 +15,7 @@ usage(){
     echo '
 Usage: '"$0"'
     --target  Set target device (pi1, pi2, or pi3)
-    --archive     Path to file system image archive file (default:${archive_path})
+    --archive Path to file system archive file (default:${archive_path})
     --img     Path of file system image file (default:${image_path})
     --size    Image size in GB (default: rounded up to next 2 GB)
     --kernel  Kernel image (default: kernel-qemu-4.19.50-buster)
