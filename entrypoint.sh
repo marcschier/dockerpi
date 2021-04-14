@@ -4,7 +4,7 @@
 # target=
 # kernel_image
 # image_path
-# zip_path
+# archive_path
 # image_size
 
 if [ -z "$target" ] || [ $target != pi* ]; then
@@ -15,7 +15,7 @@ usage(){
     echo '
 Usage: '"$0"'
     --target  Set target device (pi1, pi2, or pi3)
-    --zip     Path to file system image zip file (default:${zip_path})
+    --archive     Path to file system image archive file (default:${archive_path})
     --img     Path of file system image file (default:${image_path})
     --size    Image size in GB (default: rounded up to next 2 GB)
     --kernel  Kernel image (default: kernel-qemu-4.19.50-buster)
@@ -29,7 +29,7 @@ if [[ $target != pi* ]]; then
     case "$1" in
       --target)   target="$2" ;;
       --img)      image_path="$2" ;;
-      --zip)      zip_path="$2" ;;
+      --archive)  archive_path="$2" ;;
       --kernel)   kernel_image="$2" ;;
       --size)     image_size="$2" ;;
       --append)   append="$2" ;;
@@ -43,8 +43,8 @@ fi
 if [ -z "$image_path" ]; then
   image_path="/sdcard/filesystem.img"
 fi
-if [ -z "$zip_path" ]; then
-  zip_path="/filesystem.zip"
+if [ -z "$archive_path" ]; then
+  archive_path="/filesystem.tar.gz"
 fi
 if [ -z "$kernel_image" ]; then
   kernel_image="kernel-qemu-4.19.50-buster"
@@ -55,13 +55,12 @@ fi
 
 if [ ! -e $image_path ]; then
   echo "No filesystem detected at ${image_path}!"
-  if [ -e $zip_path ]; then
+  if [ -e $archive_path ]; then
       echo "Extracting fresh filesystem..."
-      unzip -l $zip_path
-      unzip $zip_path
+      tar -xzf $archive_path
       mv -- *.img $image_path
   else
-    echo "Specify filesystem zip file using --zip."
+    echo "Specify filesystem archive file using --archive."
     usage
   fi
 fi
