@@ -44,7 +44,7 @@ if [ ! -f "${output}/filesystem.img" ] || \
     # Prepare images
     if ! ${scripts}/rpi-prepimg.sh -o $output $prepargs ; then
         echo "Failed to prepare rpi image."
-        exit 1
+        exit
     fi
 fi
 
@@ -57,12 +57,12 @@ if [ ! -f "${output}/qemu-system-${arch}" ] || \
    
     if ! ${scripts}/build-qemu.sh -o $output; then 
         echo "Failed to build qumu."
-        exit 1
+        exit
     fi
 fi
 
 # run emulator
-if ! ${scripts}/rpi-emulator.sh -i $output $clean ; then
+if ! ${scripts}/rpi-emulator.sh -i $output $clean --tap ; then
     echo "Failed to start emulator in $output."
-    exit 1
+    exit
 fi

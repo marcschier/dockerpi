@@ -80,6 +80,11 @@ fi
 
 # -------------------------------------------------------------------------------
 
+if [ ! -f "qemu-system-${arch}" ] || [ ! -f "qemu-img" ] ; then 
+    echo "Missing qemu.  Use build-qemu.sh to build first."
+    exit 1
+fi
+
 # set up tap networking if needed
 if [ "$tap" = "y" ] ; then
     if [ -x /dev/net/tun ] ; then
@@ -178,15 +183,11 @@ sudo ip link delete dev \$1
 EOF
 
     chmod 750 $cwd/qemu-ifdown $cwd/qemu-ifup
+    echo "Starting with bridge and tap interface."
     net="$net,script=$cwd/qemu-ifup,downscript=$cwd/qemu-ifdown"
 fi
 
 # -------------------------------------------------------------------------------
-
-if [ ! -f "qemu-system-${arch}" ] || [ ! -f "qemu-img" ] ; then 
-    echo "Missing qemu.  Use build-qemu.sh to build first."
-    exit 1
-fi
 
 if [ -f "filesystem.qcow2" ] && [ "$clean" = "y" ] ; then 
     echo "Reset existing file system."
@@ -195,10 +196,18 @@ fi
 
 if [ ! -f "filesystem.qcow2" ] ; then 
     if [ -f $image ]; then
+        echo "Converting raw image to qemu image..."
+        if ! ./qemu-img convert -f raw -O qcow2 $image filesystem.qcow2 ; then
+            echo "Image conversion failed."
+            exit
+        fi
         image_size=`du -m $image | cut -f1`
         new_size=$(( ( ( ( image_size - 1 ) / 2048 ) + 1 ) * 2 ))
-        ./qemu-img convert -f raw -O qcow2 $image filesystem.qcow2
-        ./qemu-img resize filesystem.qcow2 "${new_size}G"
+        echo "Resizing qemu image from $image_size to ${new_size}G..."
+        if ! ./qemu-img resize filesystem.qcow2 "${new_size}G" ; then
+            echo "Image resizing failed."
+            exit
+        fi
     else
         echo "Missing file system image $image."
         exit 1

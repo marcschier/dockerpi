@@ -139,12 +139,12 @@ else
         if ! curl -fSsL $url1 -o libiothsm-std.deb || \
            ! curl -fSsL $url2 -o iotedge.deb ; then
             echo "Failed to download $url1 or $url2."
-            exit 5
+            exit
         fi
         if ! dpkg -i ./libiothsm-std.deb || \
            ! dpkg -i ./iotedge.deb ; then
             echo "Failed to install iot edge $edgeversion"
-            exit 6
+            exit
         fi
     else
         #
@@ -155,12 +155,12 @@ else
         if ! curl -fSsL $url1 -o aziot-identity-service.deb || \
            ! curl -fSsL $url2 -o aziot-edge.deb ; then
             echo "Failed to download $url1 or $url2."
-            exit 5
+            exit
         fi
         if ! dpkg -i ./aziot-identity-service.deb || \
            ! dpkg -i ./aziot-edge.deb ; then
             echo "Failed to install iot edge $edgeversion"
-            exit 6
+            exit
         fi
     fi
     echo "$edgeversion" > iotedge.installed

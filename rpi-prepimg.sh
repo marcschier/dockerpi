@@ -156,7 +156,7 @@ if [[ ! -f "${name}.zip" ]] ; then
     if ! curl -fSsL ${url} -o ${name}.zip || \
         ! echo "${imgsha2}  ${name}.zip" | sha256sum -c ; then
         echo "ERROR: Failed to download $name image from $url."
-        exit 1
+        exit
     fi
 else
     echo "Using existing image $name ..."
@@ -171,7 +171,7 @@ script=https://raw.githubusercontent.com/bablokb/apiinst/master/bin/apiinst
 echo "Patching os image $name for first boot..."
 if ! curl -fSsL $script -o apiinst ; then
     echo "ERROR: Failed to download $script."
-    exit 1
+    exit
 fi
 chmod +x apiinst
 mkdir -p config-files-dir/usr/local/sbin
@@ -185,11 +185,12 @@ EOF
 
 chmod +x cp3.sh
 cat $scripts/rpi-setup.sh > config-files-dir/usr/local/sbin/apiinst2
+chmod +x config-files-dir/usr/local/sbin/apiinst2
 if  ! dd if=/dev/zero of=fs.img bs=16M count=240 conv=sparse || \
     ! ./apiinst -i $output/${name}.zip -t fs.img \
         -Q -3 ./cp3.sh config-files-dir/ ; then
     echo "ERROR: Failed to create image and run apiinst script!"
-    exit 1
+    exit
 fi
 mv fs.img $output/filesystem.img
 cleanup
@@ -222,7 +223,7 @@ if [ "$dockerize" = "y" ]; then
         --platform linux/amd64 \
         --target rpi --tag rpi:$osversion . ; then 
         echo "ERROR: Error building rpi:$osversion!"
-        exit 1
+        exit
     fi
 fi
 cd $cwd

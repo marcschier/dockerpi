@@ -90,7 +90,7 @@ echo "Configure with targets '$targetlist'"
 $twd/$pkg/configure --target-list=$targetlist
 if ! make -j$(nproc) ; then
     echo "Build failed."
-    exit 2
+    exit
 fi
 
 cp $twd/build/qemu-img $output
