@@ -201,10 +201,16 @@ if [ ! -f "filesystem.qcow2" ] ; then
             echo "Image conversion failed."
             exit
         fi
-        image_size=`du -m $image | cut -f1`
-        new_size=$(( ( ( ( image_size - 1 ) / 2048 ) + 1 ) * 2 ))
-        echo "Resizing qemu image from $image_size to ${new_size}G..."
-        if ! ./qemu-img resize filesystem.qcow2 "${new_size}G" ; then
+        size=`du --block-size=1G $image | cut -f1`
+        if   (( $size <= 1  )) ; then size=1
+        elif (( $size <= 4  )) ; then size=4
+        elif (( $size <= 8  )) ; then size=8
+        elif (( $size <= 16 )) ; then size=16
+        elif (( $size <= 32 )) ; then size=32
+        elif (( $size <= 64 )) ; then size=64
+        fi
+        echo "Resizing qemu image from to ${size}G..."
+        if ! ./qemu-img resize filesystem.qcow2 "${size}G" ; then
             echo "Image resizing failed."
             exit
         fi

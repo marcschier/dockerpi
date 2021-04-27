@@ -41,6 +41,7 @@ done
 mkdir -p $output
 if [ ! -f "${output}/filesystem.img" ] || \
    [ ! -f "${output}/.env" ] ; then
+    rm -f "${output}/filesystem.*"
     # Prepare images
     if ! ${scripts}/rpi-prepimg.sh -o $output $prepargs ; then
         echo "Failed to prepare rpi image."

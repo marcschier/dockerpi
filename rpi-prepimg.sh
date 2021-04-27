@@ -192,6 +192,7 @@ if  ! dd if=/dev/zero of=fs.img bs=16M count=240 conv=sparse || \
     echo "ERROR: Failed to create image and run apiinst script!"
     exit
 fi
+du --block-size=1G fs.img
 mv fs.img $output/filesystem.img
 cleanup
 
