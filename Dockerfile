@@ -1,106 +1,31 @@
-# Build stage for qemu-system-arm
+# Build qemu
 FROM debian:stable-slim AS qemu-builder
 ARG QEMU_VERSION=5.2.0
-ENV QEMU_TARBALL="qemu-${QEMU_VERSION}.tar.xz"
+COPY build-qemu.sh .
+RUN chmod +x build-qemu.sh && ./build-qemu.sh -v $QEMU_VERSION -o /qemu
 WORKDIR /qemu
-
-RUN # Update package lists
-RUN apt-get update
-
-RUN # Pull source
-RUN apt-get -y install wget
-RUN wget "https://download.qemu.org/${QEMU_TARBALL}"
-
-RUN # Verify signatures
-RUN apt-get -y install gpg
-RUN wget "https://download.qemu.org/${QEMU_TARBALL}.sig"
-RUN gpg --keyserver keyserver.ubuntu.com --recv-keys CEACC9E15534EBABB82D3FA03353C9CEF108B584
-RUN gpg --verify "${QEMU_TARBALL}.sig" "${QEMU_TARBALL}"
-
-RUN # Extract source tarball
-RUN apt-get -y install pkg-config
-RUN tar xvf "${QEMU_TARBALL}"
-
-RUN # Build source
-# These seem to be the only deps actually required for a successful  build
-RUN apt-get -y install python build-essential libglib2.0-dev libpixman-1-dev
-# These don't seem to be required but are specified here: https://wiki.qemu.org/Hosts/Linux
-RUN apt-get -y install libfdt-dev zlib1g-dev
-# Not required or specified anywhere but supress build warnings
-RUN apt-get -y install flex bison ninja-build
-RUN "qemu-${QEMU_VERSION}/configure" --static --target-list=arm-softmmu,aarch64-softmmu
-RUN make -j$(nproc)
-
 RUN # Strip the binary, this gives a substantial size reduction!
 RUN strip "arm-softmmu/qemu-system-arm" "aarch64-softmmu/qemu-system-aarch64"
 
+# Convert filesystem image
+FROM qemu-builder AS rpi-image
+ADD sdcard.tar.gz /
+RUN image_size=`du -m /filesystem.img | cut -f1` && \
+    new_size=$(( ( ( ( image_size - 1 ) / 2048 ) + 1 ) * 2 )) && \
+    /qemu/qemu-img convert -f raw -O qcow2 /filesystem.img /filesystem.qcow2 && \
+    /qemu/qemu-img resize /filesystem.qcow2 "${new_size}G"
 
-# Build stage for fatcat
-FROM debian:stable-slim AS fatcat-builder
-ARG FATCAT_VERSION=v1.1.0
-ARG FATCAT_CHECKSUM="303efe2aa73cbfe6fbc5d8af346d0f2c70b3f996fc891e8859213a58b95ad88c"
-ENV FATCAT_TARBALL="${FATCAT_VERSION}.tar.gz"
-WORKDIR /fatcat
-
-RUN # Update package lists
-RUN apt-get update
-
-RUN # Pull source
-RUN apt-get -y install wget
-RUN wget "https://github.com/Gregwar/fatcat/archive/${FATCAT_TARBALL}"
-RUN echo "${FATCAT_CHECKSUM} ${FATCAT_TARBALL}" | sha256sum --check
-
-RUN # Extract source tarball
-RUN tar xvf "${FATCAT_TARBALL}"
-
-RUN # Build source
-RUN apt-get -y install build-essential cmake
-RUN cmake fatcat-* -DCMAKE_CXX_FLAGS='-static'
-RUN make -j$(nproc)
-
-
-# Build the dockerpi VM image
-FROM busybox:1.31 AS dockerpi-vm
-LABEL maintainer="Luke Childs <lukechilds123@gmail.com>"
-ARG RPI_KERNEL_URL="https://github.com/dhruvvyas90/qemu-rpi-kernel/archive/afe411f2c9b04730bcc6b2168cdc9adca224227c.zip"
-ARG RPI_KERNEL_CHECKSUM="295a22f1cd49ab51b9e7192103ee7c917624b063cc5ca2e11434164638aad5f4"
-ARG RPI_KERNEL_NAME="kernel-qemu-4.19.50-buster"
-
+# Rpi emulator
+FROM busybox:1.31 AS rpi
 COPY --from=qemu-builder /qemu/arm-softmmu/qemu-system-arm /usr/local/bin/qemu-system-arm
 COPY --from=qemu-builder /qemu/aarch64-softmmu/qemu-system-aarch64 /usr/local/bin/qemu-system-aarch64
-COPY --from=qemu-builder /qemu/qemu-img /usr/local/bin/qemu-img
-COPY --from=fatcat-builder /fatcat/fatcat /usr/local/bin/fatcat
 
-ADD $RPI_KERNEL_URL /tmp/qemu-rpi-kernel.zip
+COPY --from=rpi-image /rpi.dtb /rpi.dtb 
+COPY --from=rpi-image /kernel.img /kernel.img 
+COPY --from=rpi-image /filesystem.qcow2 /filesystem.qcow2 
+COPY --from=rpi-image /.env /.env
 
-RUN cd /tmp && \
-    echo "$RPI_KERNEL_CHECKSUM  qemu-rpi-kernel.zip" | sha256sum -c && \
-    unzip qemu-rpi-kernel.zip && \
-    mkdir -p /root/qemu-rpi-kernel && \
-    cp qemu-rpi-kernel-*/${RPI_KERNEL_NAME} /root/qemu-rpi-kernel/ && \
-    cp qemu-rpi-kernel-*/versatile-pb.dtb /root/qemu-rpi-kernel/ && \
-    rm -rf /tmp/*
-
-VOLUME /sdcard
-
-ENV kernel_image=${RPI_KERNEL_NAME}
-ADD ./entrypoint.sh /entrypoint.sh
-ENTRYPOINT ["./entrypoint.sh"]
-
-# Build the dockerpi image
-FROM dockerpi-vm as dockerpi2
-LABEL maintainer="Luke Childs <lukechilds123@gmail.com>"
-ADD filesystem.tar.gz ./filesystem.tar.gz
-
-# It's just the VM image with a compressed Raspbian filesystem added
-FROM dockerpi-vm as dockerpi
-LABEL maintainer="Luke Childs <lukechilds123@gmail.com>"
-ARG FILESYSTEM_IMAGE_URL="http://downloads.raspberrypi.org/raspbian_lite/images/raspbian_lite-2020-02-14/2020-02-13-raspbian-buster-lite.zip"
-ARG FILESYSTEM_IMAGE_CHECKSUM="12ae6e17bf95b6ba83beca61e7394e7411b45eba7e6a520f434b0748ea7370e8"
-
-RUN wget -o filesystem.zip ${FILESYSTEM_IMAGE_URL} && \
-    echo "$FILESYSTEM_IMAGE_CHECKSUM  /filesystem.zip" | sha256sum -c && \
-    unzip filesystem.zip && \
-    tar -czvf filesystem.tar.gz *.img && \
-    rm -rf filesystem.zip
+EXPOSE 55555
+ADD ./rpi-emulator.sh /rpi.sh
+ENTRYPOINT ["./rpi.sh"]
 

@@ -70,7 +70,7 @@ fi
 #kernel7l.img is 32-bit for BCM2711 (RPi4)
 #kernel8.img is 64-bit for BCM2837 (RPi3) or BCM2711 (RPi4)
 
-if [ "${target}" = "pi1" ]; then
+if [ "${target}" = "pi1" ] || [ "${target}" = "raspi1ap" ]; then
   emulator=qemu-system-arm
   kernel="/root/qemu-rpi-kernel/${kernel_image}"
   dtb="/root/qemu-rpi-kernel/versatile-pb.dtb"
