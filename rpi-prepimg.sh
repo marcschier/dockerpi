@@ -52,7 +52,7 @@ osversion=jessie
 name=raspbian-jessie-lite
 url=${location}/raspbian_lite-2017-07-05/2017-07-05-${name}.zip
 imgsha2="f143cb29140209a7a9fccc5395c9e2d924a0ca82976a4ec9b31b7d1478856531" 
-[ -z "$device" ] && device="raspi2b" 
+[ -z "$device" ] && device="raspi2b-arm" 
 ;;
     9|stretch)
 osversion=stretch
@@ -82,19 +82,19 @@ esac
 #
 case "$device" in 
     pi0|raspi0)
-arch="arm"
+arch="aarch64"
 machine="raspi0"
 kernel="kernel"
 dtb="bcm2709-rpi-zero" 
 ;;
     pi1|raspi1ap)
-arch="arm"
+arch="aarch64"
 machine="raspi1ap"
 kernel="kernel"
 dtb="bcm2709-rpi-1-a-plus" 
 ;;
     pi2|raspi2b)
-arch="arm"
+arch="aarch64"
 machine="raspi2b"
 kernel="kernel7"
 dtb="bcm2709-rpi-2-b"
@@ -112,16 +112,28 @@ kernel="kernel8"
 dtb="bcm2710-rpi-3-b-plus"
 ;;
     raspi3b-arm)
-arch="arm"
+arch="aarch64"
 machine="raspi3b"
 kernel="kernel7"
 dtb="bcm2710-rpi-3-b-plus"
 ;;
-    raspi3ap-arm)
+    raspi2b-arm)
 arch="arm"
-machine="raspi3ap"
+machine="raspi2b"
 kernel="kernel7"
-dtb="bcm2710-rpi-3-b-plus"
+dtb="bcm2710-rpi-2-b"
+;;
+    raspi1ap-arm)
+arch="arm"
+machine="raspi1ap"
+kernel="kernel"
+dtb="bcm2709-rpi-1-a-plus"
+;;
+    pi0|raspi0)
+arch="arm"
+machine="raspi0"
+kernel="kernel"
+dtb="bcm2709-rpi-zero" 
 ;;
     *)
 echo "Device type ${device} not supported"
@@ -192,7 +204,6 @@ if  ! dd if=/dev/zero of=fs.img bs=16M count=240 conv=sparse || \
     echo "ERROR: Failed to create image and run apiinst script!"
     exit
 fi
-du --block-size=1G fs.img
 mv fs.img $output/filesystem.img
 cleanup
 

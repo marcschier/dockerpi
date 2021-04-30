@@ -171,7 +171,7 @@ fi
 if [[ -z "$connectionstring" ]] ; then
     if [[ -z "$dpsscope" ]] || [[ -z "$dpsid" ]] || [[ -z "$dpskey" ]]; then
         sync
-        echo "Missing connection string or dps configuration. Done..."
+        echo "Missing connection string or dps configuration. Exiting until next start..."
         exit 0
     fi
 fi
@@ -182,12 +182,15 @@ if [[ $edgeversion = 1.0* ]] || [[ $edgeversion = 1.1* ]] ; then
     # 1.0 and 1.1 (LTS)
     #
     if [[ -n "$connectionstring" ]] ; then
+        echo "Using connection string to configure IoT Edge".
         cat <<EOF > /etc/iotedge/config.yaml
 provisioning:
   source: "manual"
   device_connection_string: "$connectionstring"
 EOF
+
     else
+        echo "Using DPS to configure IoT Edge".
         cat <<EOF > /etc/iotedge/config.yaml
 provisioning:
   source: "dps"
@@ -198,6 +201,7 @@ provisioning:
       registration_id: "$dpsid"
       symmetric_key: "$dpskey"
 EOF
+
     fi
 
     cat <<EOF >> /etc/iotedge/config.yaml
@@ -226,12 +230,16 @@ else
     #
     # 1.2 and beyond
     #
+    if [[ -n "$connectionstring" ]] ; then
+        iotedge config mp --connection-string $connectionstring
+    fi
 
     # add nested edge parent if defined
     if [[ -n "$parentdevice" ]] ; then
         cat <<EOF >> /etc/aziot/config.toml
 parent_hostname = "$parentdevice"
 EOF
+
     fi
 
     cat <<EOF >> /etc/aziot/config.toml
@@ -247,12 +255,15 @@ image = "mcr.microsoft.com/azureiotedge-agent:$edgeversion"
 EOF
 
     if [[ -n "$connectionstring" ]] ; then
-        cat <<EOF > /etc/aziot/config.toml
-[provisioning]
-source = "manual"
-connection_string = "$connectionstring"
-EOF
+        echo "Using connection string to configure IoT Edge".
+#        cat <<EOF > /etc/aziot/config.toml
+#[provisioning]
+#source = "manual"
+#connection_string = "$connectionstring"
+#EOF
+
     else
+        echo "Using DPS to configure IoT Edge".
         cat <<EOF > /etc/aziot/config.toml
 [provisioning]
 source = "dps"
@@ -264,6 +275,7 @@ method = "symmetric_key"
 registration_id = "$dpsid"
 symmetric_key = { value = "$dpskey" } 
 EOF
+
     fi
 
     cat /etc/aziot/config.toml
@@ -278,5 +290,5 @@ EOF
     iotedge system status
 fi
 
-echo "Iotedge $edgeversion re-configured."
+echo "Iotedge $edgeversion (Re-)configured."
 # -------------------------------------------------------------------------------

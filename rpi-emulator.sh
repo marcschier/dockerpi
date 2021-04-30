@@ -132,7 +132,8 @@ if [ "$tap" = "y" ] ; then
     ip address add $ipaddr dev $bridge
     echo "Adding routes to bridge: $bridge"
     echo "$br_routes" | tac | while read l; do
-    ip route add $l
+        echo "Adding $l"
+        ip route add $l
     done
 
     # create tap interface
@@ -155,6 +156,7 @@ restore() {
     ip address add $ipaddr dev $iface
     echo "Restoring routes to interface $iface"
     echo "$routes" | tac | while read l; do
+        echo "Re-adding $l"
         ip route add $l 
     done
     echo "Restored networking."
@@ -209,7 +211,7 @@ if [ ! -f "filesystem.qcow2" ] ; then
         elif (( $size <= 32 )) ; then size=32
         elif (( $size <= 64 )) ; then size=64
         fi
-        echo "Resizing qemu image from to ${size}G..."
+        echo "Resizing qemu image to ${size}G..."
         if ! ./qemu-img resize filesystem.qcow2 "${size}G" ; then
             echo "Image resizing failed."
             exit

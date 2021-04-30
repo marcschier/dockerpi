@@ -8,6 +8,7 @@ Usage: '"$0"'
     --device, -d      The rpi device. (Default: raspi3)
     --output, -o      The output folder to write the image to (default: $output)
     --clean, -c       Clean the output folder
+    --tap, -t         Use tap/tun networking instead of user networking.
     --help            Shows this help.
 '
     exit 1
@@ -21,6 +22,7 @@ fi
 
 prepargs=
 clean=
+runargs=
 cwd=$(pwd)
 output=`realpath rpi`
 scripts=$(readlink -f $0 | xargs dirname)
@@ -29,6 +31,7 @@ while [ "$#" -gt 0 ]; do
     case "$1" in
         --version|-v)             prepargs="$prepargs -v $2"; shift ;;
         --device|-d)              prepargs="$prepargs -d $2"; shift ;;
+        --tap|-t)                 runargs="$runargs --tap" ;;
         --output|-o)              output=`realpath $2`; shift ;;
         --clean|-c)               clean="-c" ;;
         *)                        usage ;;
@@ -41,7 +44,7 @@ done
 mkdir -p $output
 if [ ! -f "${output}/filesystem.img" ] || \
    [ ! -f "${output}/.env" ] ; then
-    rm -f "${output}/filesystem.*"
+    rm -f "${output}/filesystem.qcow2"
     # Prepare images
     if ! ${scripts}/rpi-prepimg.sh -o $output $prepargs ; then
         echo "Failed to prepare rpi image."
@@ -63,7 +66,7 @@ if [ ! -f "${output}/qemu-system-${arch}" ] || \
 fi
 
 # run emulator
-if ! ${scripts}/rpi-emulator.sh -i $output $clean --tap ; then
+if ! ${scripts}/rpi-emulator.sh -i $output $clean $runargs ; then
     echo "Failed to start emulator in $output."
     exit
 fi
